@@ -4,3 +4,4 @@ beautifulsoup4
 google-generativeai
 python-dotenv
 requests
+Pillow

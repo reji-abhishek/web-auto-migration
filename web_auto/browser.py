@@ -4,6 +4,7 @@ Shared Selenium browser utilities: driver creation and login.
 
 import shutil
 import time
+import re
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -31,6 +32,16 @@ def get_driver():
 
 def login(driver):
     """Log in to the CMS admin portal. Returns the driver."""
+    if not LOGIN_URL or not re.match(r"^https?://", LOGIN_URL):
+        raise RuntimeError(
+            "Invalid LOGIN_URL/CMS_BASE configuration. "
+            "Set either CMS_BASE or LOGIN_URL in web_auto/.env."
+        )
+    if not EMAIL or not PASSWORD:
+        raise RuntimeError(
+            "Missing EMAIL/PASSWORD in web_auto/.env."
+        )
+
     wait = WebDriverWait(driver, 30)
     driver.get(LOGIN_URL)
 

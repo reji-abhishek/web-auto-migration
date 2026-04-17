@@ -4,3 +4,7 @@ __pycache__/
 scraped_data.json
 scrape_plan_raw.txt
 assets/
+cocurricular_progress.json
+cocurricular_skipped_events.txt
+cocurricular_auto_failures.json
+cocurricular_stop.txt

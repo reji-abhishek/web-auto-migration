@@ -60,7 +60,8 @@ def compress_image(filepath, target_kb=DEFAULT_TARGET_KB):
         # Already small enough
         return filepath
 
-    target_bytes = target_kb * 1024
+    # Use decimal KB because many CMS validators treat 1KB as 1000 bytes.
+    target_bytes = int(target_kb * 1000)
     fmt, supports_quality = _FORMAT_MAP.get(ext, ("JPEG", True))
 
     try:
@@ -88,20 +89,39 @@ def compress_image(filepath, target_kb=DEFAULT_TARGET_KB):
 
             # Final save at the best quality that fits
             img.save(filepath, format=fmt, quality=best_quality, optimize=True)
+            # If still above target, progressively resize + save at low quality.
+            while os.path.getsize(filepath) > target_bytes:
+                w, h = img.size
+                new_w = int(w * 0.85)
+                new_h = int(h * 0.85)
+                if new_w < 16 or new_h < 16:
+                    break
+                img = img.resize((new_w, new_h), Image.LANCZOS)
+                img.save(filepath, format=fmt, quality=25, optimize=True)
         else:
             # PNG/BMP/TIFF — resize to reduce file size
             while os.path.getsize(filepath) > target_bytes:
                 w, h = img.size
                 new_w = int(w * 0.85)
                 new_h = int(h * 0.85)
-                if new_w < 50 or new_h < 50:
+                if new_w < 16 or new_h < 16:
                     break
                 img = img.resize((new_w, new_h), Image.LANCZOS)
                 save_kwargs = {"optimize": True} if fmt == "PNG" else {}
                 img.save(filepath, format=fmt, **save_kwargs)
+            # PNG-specific extra squeeze for stubborn files.
+            if fmt == "PNG" and os.path.getsize(filepath) > target_bytes:
+                try:
+                    png_img = img.convert("P", palette=Image.ADAPTIVE, colors=128)
+                    png_img.save(filepath, format="PNG", optimize=True)
+                except Exception:
+                    pass
 
         final_kb = os.path.getsize(filepath) / 1024
-        print(f"    📦 Compressed {size_kb:.0f}KB → {final_kb:.0f}KB")
+        if os.path.getsize(filepath) > target_bytes:
+            print(f"    ⚠ Could not fully reach target ({target_kb}KB): final {final_kb:.0f}KB")
+        else:
+            print(f"    📦 Compressed {size_kb:.0f}KB → {final_kb:.0f}KB")
         return filepath
 
     except Exception as e:

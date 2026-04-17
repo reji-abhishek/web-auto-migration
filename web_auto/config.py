@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from urllib.parse import urlparse
 
 load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 import re
@@ -42,22 +43,51 @@ def _fetch_departments():
 DEPARTMENTS = _fetch_departments()
 
 # ─── CMS Admin Portal ────────────────────────────────────────
-CMS_BASE   = os.getenv("CMS_BASE")
-LOGIN_URL  = f"{CMS_BASE}/login"
+def _env(name):
+    value = os.getenv(name)
+    return value.strip() if isinstance(value, str) else None
+
+
+def _derive_cms_base(cms_base, login_url, create_page):
+    if cms_base:
+        return cms_base.rstrip("/")
+
+    if login_url and "/login" in login_url:
+        return login_url.rsplit("/login", 1)[0].rstrip("/")
+
+    if create_page and "/departments/create" in create_page:
+        return create_page.rsplit("/departments/create", 1)[0].rstrip("/")
+
+    if login_url:
+        p = urlparse(login_url)
+        if p.scheme and p.netloc:
+            # Fallback if login path is non-standard: keep origin + parent path
+            parent = p.path.rsplit("/", 1)[0]
+            return f"{p.scheme}://{p.netloc}{parent}".rstrip("/")
+
+    return None
+
+
+CMS_BASE = _derive_cms_base(
+    _env("CMS_BASE"),
+    _env("LOGIN_URL"),
+    _env("CREATE_PAGE"),
+)
+LOGIN_URL = _env("LOGIN_URL") or (f"{CMS_BASE}/login" if CMS_BASE else "")
 
 # Per-type CMS URLs
 CMS_URLS = {
     "department": {
-        "create": f"{CMS_BASE}/departments/create",
-        "list":   f"{CMS_BASE}/departments",
+        "create": f"{CMS_BASE}/departments/create" if CMS_BASE else "",
+        "list":   f"{CMS_BASE}/departments" if CMS_BASE else "",
     },
     "faculty": {
-        "create": f"{CMS_BASE}/faculties/create",
-        "list":   f"{CMS_BASE}/faculties",
+        "create": f"{CMS_BASE}/faculties/create" if CMS_BASE else "",
+        "list":   f"{CMS_BASE}/faculties" if CMS_BASE else "",
     },
     "magazine": {
-        "create": f"{CMS_BASE}/magazines/create",
-        "list":   f"{CMS_BASE}/magazines",
+        "create": f"{CMS_BASE}/magazines/create" if CMS_BASE else "",
+        "list":   f"{CMS_BASE}/magazines" if CMS_BASE else "",
     },
 }
 

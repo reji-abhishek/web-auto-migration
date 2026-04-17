@@ -6,6 +6,7 @@ Single command — choose a department and all data is scraped + filled:
   1. Faculty    (batch fill, manual crop + submit per record)
   2. Magazines  (batch fill, manual crop + submit per record)
   3. Department (4-stage: inspect → ChatGPT plan → scrape → fill)
+  4. Co-curricular events (department edit flow → events create + fill)
 
 Usage:
     python main.py              # interactive department menu → full pipeline
@@ -13,6 +14,7 @@ Usage:
     python main.py CE faculty   # run only faculty for CE
     python main.py CE magazine  # run only magazine for CE
     python main.py CE department # run only department for CE
+    python main.py CE cocurricular # run only co-curricular events for CE
 """
 
 import sys
@@ -152,7 +154,7 @@ def main():
 
     # ── Determine department ──────────────────────────────────
     dept_code = None
-    run_only = None  # None = run all, or "faculty"/"magazine"/"department"
+    run_only = None  # None = run all, or "faculty"/"magazine"/"department"/"cocurricular"
 
     if args:
         from config import DEPARTMENTS
@@ -194,6 +196,11 @@ def main():
         # ── 3. DEPARTMENT ─────────────────────────────────────
         if run_only in (None, "department"):
             _run_department(driver)
+
+        # ── 4. CO-CURRICULAR EVENTS ───────────────────────────
+        if run_only in (None, "cocurricular", "co-curricular", "events"):
+            from cocurricular_events_flow import run as cocurricular_run
+            cocurricular_run(dept_code=dept_code, driver=driver)
 
         print("\n" + "=" * 60)
         print("  ✔ ALL DONE")
